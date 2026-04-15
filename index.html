@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/assets/app-icon.svg" />
+  <link rel="shortcut icon" href="/assets/app-icon.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sky Dash | Indie Flight Adventure</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./style.css">
+</head>
+
+<body>
+  <div id="game-container">
+    <canvas id="game-canvas"></canvas>
+    <div id="confetti-layer" aria-hidden="true"></div>
+
+    <div id="ui-layer">
+      <!-- Main Menu -->
+      <div id="main-menu" class="overlay">
+        <h1 class="game-title">SKY DASH</h1>
+        <p class="game-subtitle">Soar through the pixel clouds</p>
+        <button id="start-btn" class="premium-btn">START FLIGHT</button>
+      </div>
+
+      <!-- Game Over Screen -->
+      <div id="game-over" class="overlay hidden">
+        <h2 class="status-text">GAME OVER!</h2>
+        <div class="score-display">
+          <span class="label">DISTANCE</span>
+          <span id="final-score" class="value">0</span>
+        </div>
+        <button id="restart-btn" class="premium-btn">RETRY</button>
+      </div>
+
+      <!-- HUD -->
+      <div id="hud" class="hidden">
+        <div class="score-counter">
+          <span id="current-score">0</span>
+        </div>
+      </div>
+
+      <!-- Pause Menu -->
+      <div id="pause-menu" class="overlay hidden">
+        <h2 class="status-text">PAUSED</h2>
+        <div class="pause-buttons">
+          <button id="resume-btn" class="premium-btn">▶ RESUME</button>
+          <button id="quit-btn"   class="premium-btn secondary-btn">✕ QUIT</button>
+        </div>
+      </div>
+
+
+      <!-- Top Left Controls (Pause + Sound) -->
+      <button id="pause-btn" class="pause-btn hidden" title="Pause (Esc)">⏸</button>
+      <div id="sound-controls" class="sound-controls">
+        <button id="sound-btn" class="sound-btn" title="Toggle Sound">🔊</button>
+        <input
+          id="volume-slider"
+          class="volume-slider"
+          type="range"
+          min="0"
+          max="100"
+          step="1"
+          value="50"
+          aria-label="Volume"
+        />
+      </div>
+    </div>
+
+    <!-- Background Music -->
+    <audio id="bg-music" src="/assets/kissan4-pixel-paradise-358340.mp3" loop></audio>
+
+  </div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+
+</html>
