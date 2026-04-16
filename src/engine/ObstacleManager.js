@@ -26,6 +26,8 @@ export class ObstacleManager {
     this.sequenceEnded = false;
     this.sequencePendingSpawns = 0;
     this.sequenceCooldown = 0;
+
+    this.accelerationStartScore = 50;
   }
 
   _isMobileLayout() {
@@ -311,9 +313,12 @@ export class ObstacleManager {
       }
     }
 
-    // Apply gentler speed progression on mobile layouts.
-    const speedSettings = this._getSpeedSettings();
-    this.speed = Math.min(speedSettings.maxSpeed, this.speed + speedSettings.acceleration);
+    // Start accelerating only after score/distance reaches the configured threshold.
+    if (this.currentScore >= this.accelerationStartScore) {
+      // Apply gentler speed progression on mobile layouts.
+      const speedSettings = this._getSpeedSettings();
+      this.speed = Math.min(speedSettings.maxSpeed, this.speed + speedSettings.acceleration);
+    }
   }
 
   checkCollision(player) {
