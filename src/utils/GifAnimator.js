@@ -2,7 +2,7 @@
  * GifAnimator — animated background frame player.
  *
  * Priority:
- *  1. Load from  /assets/bg-frames/manifest.json  (pre-extracted PNGs).
+ *  1. Load from  ./public/assets/bg-frames/manifest.json  (pre-extracted PNGs).
  *     After running  node tools/extract-frames.js  you can delete unwanted
  *     PNG files and regenerate the manifest with  node tools/update-manifest.js.
  *  2. If no manifest exists, fall back to decoding the GIF in-memory (slower
@@ -25,7 +25,7 @@ export class GifAnimator {
 
   async load(gifUrl) {
     // 1. Try manifest-based loading (pre-extracted PNG frames)
-    const manifestUrl = '/assets/bg-frames/manifest.json';
+    const manifestUrl = './public/assets/bg-frames/manifest.json';
     try {
       const res = await fetch(manifestUrl);
       if (res.ok) {
@@ -77,7 +77,7 @@ export class GifAnimator {
   // ─────────────────────────────────────────────────────────────────────────
 
   async _loadFromManifest(manifest) {
-    const base = '/assets/bg-frames/';
+    const base = './public/assets/bg-frames/';
     const promises = manifest.frames.map(({ file, delay }) =>
       new Promise((resolve) => {
         const img   = new Image();

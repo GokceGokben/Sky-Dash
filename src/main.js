@@ -243,8 +243,8 @@ window.addEventListener('keydown', startMusicOnce, { once: true });
 async function loadAssets() {
   // ── Regular image assets ────────────────────────────────────────────────
   const imageAssets = [
-    { name: 'player',   src: '/assets/bee.jpg' },
-    { name: 'obstacle', src: '/assets/Pipe.jpg' }
+    { name: 'player',   src: './public/assets/bee.jpg' },
+    { name: 'obstacle', src: './public/assets/Pipe.JPG' }
   ];
 
   imageAssets.forEach((asset) => {
@@ -275,14 +275,14 @@ async function loadAssets() {
   const loadGifBackground = async () => {
     // Fast path: draw GIF as a static image first so menu has instant background.
     const staticGif = new Image();
-    staticGif.src = '/assets/bg.gif';
+    staticGif.src = './public/assets/bg.gif';
     staticGif.onload = () => {
       game.setAsset('background', staticGif);
     };
 
     try {
       const animator = new GifAnimator();
-      await animator.load('/assets/bg.gif');
+      await animator.load('./public/assets/bg.gif');
       if (animator.ready) {
         animator.playbackRate = 0.5;
         console.log('[main] GIF background loaded');
