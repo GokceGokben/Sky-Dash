@@ -89,7 +89,7 @@ export class Game {
           this.ui.showConfetti();
         }
       }
-    });
+    }, this.score);
 
     if (this.assets.backgroundVideo) {
       // The base speed is 4. When speed increases, increase video playback rate to match.

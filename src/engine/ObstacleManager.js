@@ -5,15 +5,27 @@ export class ObstacleManager {
     this.width = 120;
     this.speed = 4;
     this.maxSpeed = 9;
-    this.minSpawnDistance = 205;
-    this.maxSpawnDistance = 285;
+    this.minSpawnDistance = 225;
+    this.maxSpawnDistance = 310;
     this.spawnTimer = 0; // Tracks physical distance covered
     this.spawnDistance = this._randomSpawnDistance(); // variable horizontal spacing in pixels
     this.minGap = 220;
     this.maxGap = 320;
     this.passableMinGap = 176;
-    this.tightGapChance = 0.52;
-    this.minY = 100;
+    this.tightGapChance = 0.34;
+    this.minY = 50;  // Raise pipes higher for more playable space
+    
+    // Challenge sequence tracking (6-7 same pipes in a row, rare after level 20)
+    this.currentScore = 0;
+    this.inSequence = false;
+    this.sequenceType = null;
+    this.sequenceCount = 0;
+    this.sequenceLength = 0;
+    this.sequenceTopH = 0;
+    this.sequenceGap = 0;
+    this.sequenceEnded = false;
+    this.sequencePendingSpawns = 0;
+    this.sequenceCooldown = 0;
   }
 
   _isMobileLayout() {
@@ -24,15 +36,15 @@ export class ObstacleManager {
     if (this._isMobileLayout()) {
       return {
         startSpeed: 3.6,
-        maxSpeed: 7.2,
-        acceleration: 0.0019
+        maxSpeed: 8.0,
+        acceleration: 0.0020
       };
     }
 
     return {
       startSpeed: 4,
-      maxSpeed: this.maxSpeed,
-      acceleration: 0.0025
+      maxSpeed: 10,
+      acceleration: 0.0021
     };
   }
 
@@ -48,7 +60,7 @@ export class ObstacleManager {
     // Adapt gap to screen size so every layout remains passable.
     const mobile = this._isMobileLayout();
     const minGapByScreen = Math.floor(this.canvas.height * (mobile ? 0.28 : 0.22));
-    const maxGapByScreen = Math.floor(this.canvas.height * (mobile ? 0.33 : 0.26));
+    const maxGapByScreen = Math.floor(this.canvas.height * (mobile ? 0.33 : 0.27));
 
     const minGap = Math.max(mobile ? 190 : 176, Math.min(mobile ? 250 : 220, minGapByScreen));
     const maxGap = Math.max(minGap + (mobile ? 24 : 18), Math.min(mobile ? 285 : 245, maxGapByScreen));
@@ -76,14 +88,20 @@ export class ObstacleManager {
     this.spawnTimer = 0;
     this.speed = speedSettings.startSpeed;
     this.spawnDistance = this._randomSpawnDistance();
+    this.currentScore = 0;
+    this.inSequence = false;
+    this.sequenceCount = 0;
+    this.sequenceType = null;
+    this.sequenceLength = 0;
+    this.sequenceGap = 0;
+    this.sequenceEnded = false;
+    this.sequencePendingSpawns = 0;
+    this.sequenceCooldown = 0;
   }
 
   spawnInitial() {
-    this.spawn();
-    // Start the first obstacle slightly off-screen so it enters quickly.
-    this.obstacles[this.obstacles.length - 1].x = this.canvas.width + 120;
-
-    // Match normal pacing from the beginning.
+    // Skip the first pipe, let the game start cleanly
+    // First pipe will spawn naturally when spawnTimer reaches spawnDistance
     this.spawnTimer = 0;
     this.spawnDistance = this._randomSpawnDistance();
   }
@@ -146,6 +164,69 @@ export class ObstacleManager {
   }
 
   spawn() {
+    // Handle challenge sequence (6-7 same pipes in a row)
+    if (this.inSequence) {
+      this.sequenceCount++;
+      if (this.sequenceCount < this.sequenceLength) {
+        // Continue with same pipe - exact same topH and gap
+        this.obstacles.push({
+          x: this.canvas.width,
+          topH: this.sequenceTopH,
+          gap: this.sequenceGap,
+          type: this.sequenceType,
+          passed: false
+        });
+        return;
+      }
+
+      // End sequence - don't spawn a tail pipe, just finish cleanly
+      // The cooldown below will ensure spacing before the next normal pipe
+      this.inSequence = false;
+      this.sequenceCount = 0;
+      this.sequenceType = null;
+      this.sequenceLength = 0;
+      this.sequenceEnded = true;
+      this.sequenceCooldown = 3;
+      return;
+    }
+
+    // Check if we should start a new challenge sequence
+    // Trigger after 20+ points with a small random chance, but guarantee it after a few normal spawns.
+    if (this.sequenceCooldown > 0) {
+      this.sequenceCooldown--;
+    } else if (this.currentScore >= 20) {
+      this.sequencePendingSpawns++;
+      if (Math.random() < 0.12 || this.sequencePendingSpawns >= 6) {
+      // Start challenge sequence - always use 'full' pipes with top and bottom
+      this.inSequence = true;
+      this.sequenceCount = 0;
+      this.sequenceType = 'full';  // Force full pipes with both top and bottom
+      this.sequenceLength = Math.random() < 0.5 ? 6 : 7;
+      this.sequencePendingSpawns = 0;
+      
+      // Generate first of the sequence with fixed position
+      let topH, gap;
+      gap = this._randomGap();
+      const maxTopH = this.canvas.height - gap - this.minY;
+      topH = Math.floor(Math.random() * (maxTopH - this.minY + 1) + this.minY);
+      
+      this.sequenceTopH = topH;
+      this.sequenceGap = gap;
+      
+      this.obstacles.push({
+        x: this.canvas.width,
+        topH: topH,
+        gap: gap,
+        type: this.sequenceType,
+        passed: false
+      });
+      return;
+      }
+    } else {
+      this.sequencePendingSpawns = 0;
+    }
+
+    // Normal spawn
     const type = this._randomType();
 
     let topH, gap;
@@ -194,12 +275,24 @@ export class ObstacleManager {
     });
   }
 
-  update(onScore) {
+  update(onScore, score = 0) {
+    this.currentScore = score;
     this.spawnTimer += this.speed;
-    if (this.spawnTimer >= this.spawnDistance) {
+    
+    // During sequence, use tight spacing (pipes completely touching - no gap)
+    let effectiveSpawnDistance = this.spawnDistance;
+    if (this.inSequence) {
+      effectiveSpawnDistance = this.width;  // Pipes completely touching, no visual gap
+    }
+    
+    if (this.spawnTimer >= effectiveSpawnDistance) {
       this.spawn();
       this.spawnTimer = 0;
-      this.spawnDistance = this._randomSpawnDistance();
+      if (!this.inSequence) {
+        const sequenceEndBoost = this.sequenceEnded ? this.width + 80 : 0;
+        this.spawnDistance = this._randomSpawnDistance() + sequenceEndBoost;
+        this.sequenceEnded = false;
+      }
     }
 
     for (let i = this.obstacles.length - 1; i >= 0; i--) {

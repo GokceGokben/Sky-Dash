@@ -5,8 +5,8 @@ export class Player {
     this.height = 46;
     this.reset();
     
-    this.gravity = 0.6;
-    this.jumpStrength = -10;
+    this.gravity = 0.85;
+    this.jumpStrength = -11;
     this.maxVelocity = 15;
     this.rotation = 0;
   }
