@@ -240,10 +240,19 @@ function startMusicOnce() {
 window.addEventListener('keydown', startMusicOnce, { once: true });
 
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js').catch((err) => {
-      console.warn('[main] service worker registration failed', err);
-    });
+  window.addEventListener('load', async () => {
+    try {
+      // A previous SW version caused a refresh loop in production.
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(registrations.map((registration) => registration.unregister()));
+
+      if ('caches' in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map((key) => caches.delete(key)));
+      }
+    } catch (err) {
+      console.warn('[main] service worker cleanup failed', err);
+    }
   });
 }
 
