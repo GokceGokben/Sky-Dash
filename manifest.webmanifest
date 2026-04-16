@@ -1,0 +1,19 @@
+{
+  "name": "Sky Dash",
+  "short_name": "SkyDash",
+  "description": "Soar through the pixel clouds in a retro neon flight challenge.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f0727",
+  "theme_color": "#0f0727",
+  "icons": [
+    {
+      "src": "./public/assets/app-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

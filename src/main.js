@@ -3,6 +3,21 @@ import { removeWhiteBackground, cropToContent } from './utils/ImageUtils.js';
 import { GifAnimator } from './utils/GifAnimator.js';
 
 const canvas = document.getElementById('game-canvas');
+const installPromptCard = document.getElementById('install-prompt');
+const installMessage = document.getElementById('install-message');
+const installAppBtn = document.getElementById('install-app-btn');
+const installLaterBtn = document.getElementById('install-later-btn');
+
+let deferredInstallPrompt = null;
+
+function isStandaloneMode() {
+  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+}
+
+function toggleInstallPrompt(visible) {
+  if (!installPromptCard) return;
+  installPromptCard.classList.toggle('hidden', !visible);
+}
 
 function burstConfetti(layer, amount = 320) {
   if (!layer) return;
@@ -238,6 +253,57 @@ function startMusicOnce() {
   }
 }
 window.addEventListener('keydown', startMusicOnce, { once: true });
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch((err) => {
+      console.warn('[main] service worker registration failed', err);
+    });
+  });
+}
+
+window.addEventListener('beforeinstallprompt', (event) => {
+  event.preventDefault();
+  deferredInstallPrompt = event;
+  if (!isStandaloneMode()) {
+    toggleInstallPrompt(true);
+  }
+});
+
+if (installAppBtn) {
+  installAppBtn.addEventListener('click', async () => {
+    if (!deferredInstallPrompt) return;
+    deferredInstallPrompt.prompt();
+    const choice = await deferredInstallPrompt.userChoice;
+    if (choice.outcome !== 'accepted') {
+      toggleInstallPrompt(true);
+      return;
+    }
+    deferredInstallPrompt = null;
+    toggleInstallPrompt(false);
+  });
+}
+
+if (installLaterBtn) {
+  installLaterBtn.addEventListener('click', () => {
+    toggleInstallPrompt(false);
+  });
+}
+
+window.addEventListener('appinstalled', () => {
+  deferredInstallPrompt = null;
+  toggleInstallPrompt(false);
+});
+
+if (!isStandaloneMode()) {
+  const isiOS = /iphone|ipad|ipod/i.test(window.navigator.userAgent);
+  const isSafari = /safari/i.test(window.navigator.userAgent) && !/chrome|crios|android/i.test(window.navigator.userAgent);
+  if (isiOS && isSafari && installPromptCard && installMessage && installAppBtn) {
+    installMessage.textContent = 'iPhone icin: Paylas > Ana Ekrana Ekle';
+    installAppBtn.classList.add('hidden');
+    toggleInstallPrompt(true);
+  }
+}
 
 // Asset Loading
 async function loadAssets() {
