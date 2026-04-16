@@ -12,7 +12,7 @@ https://gokcegokben.github.io/Sky-Dash/
 - Responsive gameplay for desktop and mobile
 - Pause menu and in-game sound controls
 - Volume slider (0-100)
-- Easter egg confetti celebration at score 100
+- Easter egg confetti celebration at score ?
 
 ## Controls
 
@@ -25,7 +25,7 @@ https://gokcegokben.github.io/Sky-Dash/
 
 Requirements:
 
-- Node.js 18+
+- Node.js 20+
 
 Install and run:
 

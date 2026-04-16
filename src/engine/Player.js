@@ -1,8 +1,8 @@
 export class Player {
   constructor(canvas) {
     this.canvas = canvas;
-    this.width = 65;
-    this.height = 50;
+    this.width = 60;
+    this.height = 46;
     this.reset();
     
     this.gravity = 0.6;
