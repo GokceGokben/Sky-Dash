@@ -39,14 +39,14 @@ export class ObstacleManager {
       return {
         startSpeed: 3.6,
         maxSpeed: 8.0,
-        acceleration: 0.0020
+        acceleration: 0.0015
       };
     }
 
     return {
       startSpeed: 4,
       maxSpeed: 10,
-      acceleration: 0.0021
+      acceleration: 0.0016
     };
   }
 
