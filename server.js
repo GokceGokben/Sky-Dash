@@ -14,11 +14,14 @@ const MIME_TYPES = {
   '.mp3': 'audio/mpeg',
   '.svg': 'image/svg+xml',
   '.json': 'application/json',
+  '.webmanifest': 'application/manifest+json',
+  '.mp4': 'video/mp4',
+  '.wav': 'audio/wav',
 };
 
 const server = http.createServer((req, res) => {
-  let urlPath = req.url;
-  if (urlPath === '/') {
+  let urlPath = req.url.split('?')[0];
+  if (urlPath === '/' || urlPath === '') {
     urlPath = '/index.html';
   }
 
@@ -30,6 +33,7 @@ const server = http.createServer((req, res) => {
 
   function tryNext(index) {
     if (index >= pathsToTry.length) {
+      console.log(`❌ [404] Not Found: ${req.url}`);
       res.writeHead(404);
       res.end('404 Not Found');
       return;
@@ -40,6 +44,7 @@ const server = http.createServer((req, res) => {
       if (error) {
         tryNext(index + 1);
       } else {
+        console.log(`✅ [200] Serving: ${req.url} -> ${path.basename(filePath)}`);
         const extname = String(path.extname(filePath)).toLowerCase();
         const contentType = MIME_TYPES[extname] || 'application/octet-stream';
         res.writeHead(200, { 'Content-Type': contentType });
