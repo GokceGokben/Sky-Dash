@@ -2,18 +2,18 @@ export class ObstacleManager {
   constructor(canvas) {
     this.canvas = canvas;
     this.obstacles = [];
-    this.width = 120;
-    this.speed = 4;
-    this.maxSpeed = 9;
-    this.minSpawnDistance = 225;
-    this.maxSpawnDistance = 310;
-    this.spawnTimer = 0; // Tracks physical distance covered
-    this.spawnDistance = this._randomSpawnDistance(); // variable horizontal spacing in pixels
-    this.minGap = 220;
-    this.maxGap = 320;
-    this.passableMinGap = 176;
+    this.width = 150;
+    this.speed = 6;
+    this.maxSpeed = 12;
+    this.minSpawnDistance = 320;
+    this.maxSpawnDistance = 450;
+    this.spawnTimer = 0;
+    this.spawnDistance = this._randomSpawnDistance();
+    this.minGap = 280;
+    this.maxGap = 420;
+    this.passableMinGap = 250;
     this.tightGapChance = 0.34;
-    this.minY = 50;  // Raise pipes higher for more playable space
+    this.minY = 80;
     
     // Challenge sequence tracking (6-7 same pipes in a row, rare after level 20)
     this.currentScore = 0;
@@ -51,30 +51,18 @@ export class ObstacleManager {
   }
 
   _randomSpawnDistance() {
-    // Keep spacing consistent across the run (don't expand with speed).
-    const mobileBoost = this._isMobileLayout() ? 45 : 0;
-    const minDist = this.minSpawnDistance + mobileBoost;
-    const maxDist = Math.max(minDist + 30, this.maxSpawnDistance + mobileBoost + 30);
+    const minDist = this.minSpawnDistance;
+    const maxDist = this.maxSpawnDistance;
     return Math.floor(Math.random() * (maxDist - minDist + 1) + minDist);
   }
 
   _randomGap() {
-    // Adapt gap to screen size so every layout remains passable.
-    const mobile = this._isMobileLayout();
-    const minGapByScreen = Math.floor(this.canvas.height * (mobile ? 0.28 : 0.22));
-    const maxGapByScreen = Math.floor(this.canvas.height * (mobile ? 0.33 : 0.27));
+    const minGap = this.minGap;
+    const maxGap = this.maxGap;
 
-    const minGap = Math.max(mobile ? 190 : 176, Math.min(mobile ? 250 : 220, minGapByScreen));
-    const maxGap = Math.max(minGap + (mobile ? 24 : 18), Math.min(mobile ? 285 : 245, maxGapByScreen));
-
-    this.minGap = minGap;
-    this.maxGap = maxGap;
-
-    // Keep the usual broad range, but occasionally spawn tighter openings.
     if (Math.random() < this.tightGapChance) {
-      const safeMinGap = mobile ? this.passableMinGap + 6 : this.passableMinGap;
-      const tightMinGap = Math.max(safeMinGap, minGap - (mobile ? 24 : 30));
-      const tightMaxGap = Math.max(tightMinGap + 8, minGap - 8);
+      const tightMinGap = this.passableMinGap;
+      const tightMaxGap = Math.max(tightMinGap + 20, minGap - 20);
       return Math.floor(Math.random() * (tightMaxGap - tightMinGap + 1) + tightMinGap);
     }
 
@@ -85,10 +73,9 @@ export class ObstacleManager {
   }
 
   reset() {
-    const speedSettings = this._getSpeedSettings();
     this.obstacles = [];
     this.spawnTimer = 0;
-    this.speed = speedSettings.startSpeed;
+    this.speed = 6;
     this.spawnDistance = this._randomSpawnDistance();
     this.currentScore = 0;
     this.inSequence = false;
@@ -123,72 +110,82 @@ export class ObstacleManager {
     return { top: topH, bottom: topH + gap };
   }
 
-  _applyTransitionSafety(type, topH, gap) {
+  _applyTransitionSafety(type, topH, gap, isStuck = false) {
     const prev = this.obstacles[this.obstacles.length - 1];
     if (!prev) return { topH, gap };
 
-    const mobile = this._isMobileLayout();
-    const minOverlap = mobile ? 58 : 52;
+    // Final Ease Tuning:
+    // Normal: 150, Stuck: 185 (creates a very generous common window)
+    const minOverlap = isStuck ? 185 : 150;
 
     const prevRange = this._openingRange(prev.type, prev.topH, prev.gap);
     const currRange = this._openingRange(type, topH, gap);
 
     const prevCenter = (prevRange.top + prevRange.bottom) / 2;
-    const currCenter = (currRange.top + currRange.bottom) / 2;
+    let currCenter = (currRange.top + currRange.bottom) / 2;
     const prevSpan = prevRange.bottom - prevRange.top;
     const currSpan = currRange.bottom - currRange.top;
 
-    const maxCenterDistance = Math.max(0, (prevSpan + currSpan) / 2 - minOverlap);
-    const centerDistance = currCenter - prevCenter;
-
-    if (Math.abs(centerDistance) <= maxCenterDistance) {
-      return { topH, gap };
+    // 1. Cap the maximum vertical center shift to ensure the jump is physically possible.
+    // Final Ease Tuning: 20% limit for normal, 10% limit for stuck (nearly flat transitions)
+    const maxShift = isStuck ? this.canvas.height * 0.10 : this.canvas.height * 0.20;
+    const rawShift = currCenter - prevCenter;
+    if (Math.abs(rawShift) > maxShift) {
+      currCenter = prevCenter + Math.sign(rawShift) * maxShift;
     }
 
-    const targetCenter = prevCenter + Math.sign(centerDistance || 1) * maxCenterDistance;
+    // 2. Ensure minOverlap is respected by placing centers close enough.
+    const maxCenterDist = Math.max(0, (prevSpan + currSpan) / 2 - minOverlap);
+    const centerDist = currCenter - prevCenter;
 
+    if (Math.abs(centerDist) > maxCenterDist) {
+      currCenter = prevCenter + Math.sign(centerDist || 1) * maxCenterDist;
+    }
+
+    // Map the resolved center back to topH/gap
     if (type === 'bottom-only') {
       // bottom-only opening is [0, topH + gap], so center = (topH + gap)/2
-      const openBottom = Math.max(minOverlap + 40, targetCenter * 2);
+      const openBottom = Math.max(100, currCenter * 2);
       topH = openBottom - gap;
-      return { topH, gap };
-    }
-
-    if (type === 'full') {
+    } else if (type === 'full') {
       const minTop = this.minY;
       const maxTop = Math.max(minTop, this.canvas.height - gap - this.minY);
-      const candidateTop = Math.round(targetCenter - gap / 2);
+      const candidateTop = Math.round(currCenter - gap / 2);
       topH = Math.max(minTop, Math.min(maxTop, candidateTop));
-      return { topH, gap };
     }
 
     return { topH, gap };
   }
 
   spawn() {
-    // Handle challenge sequence (6-7 same pipes in a row)
+    // ── Challenge Sequence (Stuck Pipes) ──────────────────────────
     if (this.inSequence) {
       this.sequenceCount++;
-      if (this.sequenceCount < this.sequenceLength) {
-        // Continue with same pipe - exact same topH and gap
-        this.obstacles.push({
-          x: this.canvas.width,
-          topH: this.sequenceTopH,
-          gap: this.sequenceGap,
-          type: this.sequenceType,
-          passed: false
-        });
+      if (this.sequenceCount >= this.sequenceLength) {
+        // End sequence
+        this.inSequence = false;
+        this.sequenceCount = 0;
+        this.sequenceType = null;
+        this.sequenceLength = 0;
+        this.sequenceEnded = true;
+        this.sequenceCooldown = 3;
         return;
       }
 
-      // End sequence - don't spawn a tail pipe, just finish cleanly
-      // The cooldown below will ensure spacing before the next normal pipe
-      this.inSequence = false;
-      this.sequenceCount = 0;
-      this.sequenceType = null;
-      this.sequenceLength = 0;
-      this.sequenceEnded = true;
-      this.sequenceCooldown = 3;
+      // Spawn a new DIFFERENT pipe but as part of the sequence (effectiveSpawnDistance handles 'stuck')
+      let gap = this._randomGap();
+      const maxTopH = this.canvas.height - gap - this.minY;
+      let rawTopH = Math.floor(Math.random() * (maxTopH - this.minY + 1) + this.minY);
+      
+      const safe = this._applyTransitionSafety('full', rawTopH, gap, true);
+      
+      this.obstacles.push({
+        x: this.canvas.width,
+        topH: safe.topH,
+        gap: safe.gap,
+        type: 'full',
+        passed: false
+      });
       return;
     }
 
@@ -198,32 +195,28 @@ export class ObstacleManager {
       this.sequenceCooldown--;
     } else if (this.currentScore >= 20) {
       this.sequencePendingSpawns++;
-      if (Math.random() < 0.12 || this.sequencePendingSpawns >= 6) {
-      // Start challenge sequence - always use 'full' pipes with top and bottom
+      // Start challenge sequence
       this.inSequence = true;
       this.sequenceCount = 0;
-      this.sequenceType = 'full';  // Force full pipes with both top and bottom
-      this.sequenceLength = Math.random() < 0.5 ? 6 : 7;
+      this.sequenceType = 'full';
+      this.sequenceLength = Math.random() < 0.5 ? 6 : 8; // Slightly longer sequences
       this.sequencePendingSpawns = 0;
       
-      // Generate first of the sequence with fixed position
-      let topH, gap;
-      gap = this._randomGap();
+      // Generate first pipe of the sequence
+      let gap = this._randomGap();
       const maxTopH = this.canvas.height - gap - this.minY;
-      topH = Math.floor(Math.random() * (maxTopH - this.minY + 1) + this.minY);
-      
-      this.sequenceTopH = topH;
-      this.sequenceGap = gap;
+      let topH = Math.floor(Math.random() * (maxTopH - this.minY + 1) + this.minY);
+
+      // (No safety needed for the first pipe in an isolated spawn)
       
       this.obstacles.push({
         x: this.canvas.width,
         topH: topH,
         gap: gap,
-        type: this.sequenceType,
+        type: 'full',
         passed: false
       });
       return;
-      }
     } else {
       this.sequencePendingSpawns = 0;
     }
@@ -243,7 +236,7 @@ export class ObstacleManager {
         topH = Math.floor(Math.random() * (maxTopH - this.minY + 1) + this.minY);
       }
 
-      const adjusted = this._applyTransitionSafety(type, topH, gap);
+      const adjusted = this._applyTransitionSafety(type, topH, gap, false);
       topH = adjusted.topH;
       gap = adjusted.gap;
 
@@ -255,7 +248,7 @@ export class ObstacleManager {
       gap = this._randomGap(); // gap value is still needed for the formula
       topH = opening - gap;     // may be negative — that's intentional (no top pipe drawn)
 
-      const adjusted = this._applyTransitionSafety(type, topH, gap);
+      const adjusted = this._applyTransitionSafety(type, topH, gap, false);
       topH = adjusted.topH;
       gap = adjusted.gap;
 
@@ -315,9 +308,7 @@ export class ObstacleManager {
 
     // Start accelerating only after score/distance reaches the configured threshold.
     if (this.currentScore >= this.accelerationStartScore) {
-      // Apply gentler speed progression on mobile layouts.
-      const speedSettings = this._getSpeedSettings();
-      this.speed = Math.min(speedSettings.maxSpeed, this.speed + speedSettings.acceleration);
+      this.speed = Math.min(this.maxSpeed, this.speed + 0.002);
     }
   }
 

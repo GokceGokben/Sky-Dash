@@ -1,13 +1,13 @@
 export class Player {
   constructor(canvas) {
     this.canvas = canvas;
-    this.width = 60;
-    this.height = 46;
+    this.width = 80;
+    this.height = 60;
     this.reset();
     
-    this.gravity = 0.80;
-    this.jumpStrength = -11;
-    this.maxVelocity = 15;
+    this.gravity = 1.1;
+    this.jumpStrength = -16;
+    this.maxVelocity = 22;
     this.rotation = 0;
   }
 

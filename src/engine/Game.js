@@ -31,8 +31,19 @@ export class Game {
   }
 
   resize() {
-    this.canvas.width = window.innerWidth;
-    this.canvas.height = window.innerHeight;
+    const W = window.innerWidth;
+    const H = window.innerHeight;
+
+    if (H > W) {
+      // Portrait (Mobile): Fix logical width at 600, adapt height
+      this.canvas.width = 600;
+      this.canvas.height = 600 * (H / W);
+    } else {
+      // Landscape (Desktop): Fix logical height at 800, adapt width
+      this.canvas.height = 800;
+      this.canvas.width = 800 * (W / H);
+    }
+
     this.player.reset();
     this.obstacleManager.reset();
   }
