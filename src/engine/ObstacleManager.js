@@ -2,7 +2,7 @@ export class ObstacleManager {
   constructor(canvas) {
     this.canvas = canvas;
     this.obstacles = [];
-    this.width = 110;
+    this.width = 150;
     this.speed = 4.5;
     this.maxSpeed = 9;
     this.minSpawnDistance = 240;
