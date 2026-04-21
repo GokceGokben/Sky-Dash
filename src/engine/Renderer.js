@@ -25,9 +25,9 @@ export class Renderer {
    * Draw background — static position, but animated if a GifAnimator is provided.
    * The animator advances its internal frame each call; we just drawImage the result.
    */
-  drawBackground(bgImage, bgVideo, bgAnimator, bgScrollSpeed = 0.4, animateBackground = true) {
-    const W = this.canvas.width;
-    const H = this.canvas.height;
+  drawBackground(bgImage, bgVideo, bgAnimator, bgScrollSpeed = 0.4, animateBackground = true, logicalCanvas = null) {
+    const W = logicalCanvas ? logicalCanvas.width : this.canvas.width;
+    const H = logicalCanvas ? logicalCanvas.height : this.canvas.height;
 
     // ── Animated GIF background (bg.gif) ──────────────────────────────
     if (bgAnimator?.ready && bgAnimator.currentCanvas) {
@@ -153,16 +153,27 @@ export class Renderer {
     this.ctx.fillRect(0, 0, W, H);
   }
 
-  draw(player, obstacleManager, assets, bgScrollSpeed, animateBackground) {
+  draw(player, obstacleManager, assets, bgScrollSpeed, animateBackground, logicalCanvas = null) {
     this.clear();
+    this.ctx.save();
+
+    if (logicalCanvas) {
+      const scaleX = this.canvas.width / logicalCanvas.width;
+      const scaleY = this.canvas.height / logicalCanvas.height;
+      this.ctx.scale(scaleX, scaleY);
+    }
+
     this.drawBackground(
       assets.background,
       assets.backgroundVideo,
       assets.backgroundAnimator,
       bgScrollSpeed,
-      animateBackground
+      animateBackground,
+      logicalCanvas
     );
     obstacleManager.draw(this.ctx, assets.obstacle);
     player.draw(this.ctx, assets.player);
+
+    this.ctx.restore();
   }
 }

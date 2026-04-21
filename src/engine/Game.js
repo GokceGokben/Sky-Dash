@@ -8,9 +8,10 @@ export class Game {
   constructor(canvas, ui) {
     this.canvas = canvas;
     this.ui = ui;
+    this.logicalCanvas = { width: 800, height: 600 };
     this.renderer = new Renderer(canvas);
-    this.player = new Player(canvas);
-    this.obstacleManager = new ObstacleManager(canvas);
+    this.player = new Player(this.logicalCanvas);
+    this.obstacleManager = new ObstacleManager(this.logicalCanvas);
 
     this.state = 'MENU'; // MENU, PLAYING, PAUSED, GAMEOVER
     this.score = 0;
@@ -33,15 +34,22 @@ export class Game {
   resize() {
     const W = window.innerWidth;
     const H = window.innerHeight;
+    const dpr = window.devicePixelRatio || 1;
+
+    // Setting high resolution internal buffer for blur-free scaling
+    this.canvas.width = W * dpr;
+    this.canvas.height = H * dpr;
+    this.canvas.style.width = W + 'px';
+    this.canvas.style.height = H + 'px';
 
     if (H > W) {
-      // Portrait (Mobile): Fix logical width at 600, adapt height
-      this.canvas.width = 600;
-      this.canvas.height = 600 * (H / W);
+      // Portrait (Mobile): Fix logical width at 400 to make shapes larger, adapt height
+      this.logicalCanvas.width = 400;
+      this.logicalCanvas.height = 400 * (H / W);
     } else {
-      // Landscape (Desktop): Fix logical height at 800, adapt width
-      this.canvas.height = 800;
-      this.canvas.width = 800 * (W / H);
+      // Landscape (Desktop): Fix logical height at 600 to make shapes larger, adapt width
+      this.logicalCanvas.height = 600;
+      this.logicalCanvas.width = 600 * (W / H);
     }
 
     this.player.reset();
@@ -124,7 +132,8 @@ export class Game {
       this.obstacleManager,
       this.assets,
       this.getBackgroundScrollSpeed(),
-      animateBackground
+      animateBackground,
+      this.logicalCanvas
     );
     requestAnimationFrame(this.loop);
   }

@@ -54,7 +54,6 @@ body {
   left: 0;
   z-index: 1;
   background: transparent;
-  image-rendering: pixelated;
 }
 
 #confetti-layer {
@@ -73,7 +72,6 @@ body {
   height: 100%;
   pointer-events: none;
   z-index: 2;
-  overflow: hidden;
 }
 
 #ui-layer>* {

@@ -5,9 +5,9 @@ export class Player {
     this.height = 60;
     this.reset();
     
-    this.gravity = 1.1;
-    this.jumpStrength = -16;
-    this.maxVelocity = 22;
+    this.gravity = 0.825;
+    this.jumpStrength = -12;
+    this.maxVelocity = 16.5;
     this.rotation = 0;
   }
 

@@ -2,19 +2,19 @@ export class ObstacleManager {
   constructor(canvas) {
     this.canvas = canvas;
     this.obstacles = [];
-    this.width = 150;
-    this.speed = 6;
-    this.maxSpeed = 12;
-    this.minSpawnDistance = 320;
-    this.maxSpawnDistance = 450;
+    this.width = 110;
+    this.speed = 4.5;
+    this.maxSpeed = 9;
+    this.minSpawnDistance = 240;
+    this.maxSpawnDistance = 340;
     this.spawnTimer = 0;
     this.spawnDistance = this._randomSpawnDistance();
-    this.minGap = 280;
-    this.maxGap = 420;
-    this.passableMinGap = 250;
+    this.minGap = 210;
+    this.maxGap = 315;
+    this.passableMinGap = 190;
     this.tightGapChance = 0.34;
-    this.minY = 80;
-    
+    this.minY = 60;
+
     // Challenge sequence tracking (6-7 same pipes in a row, rare after level 20)
     this.currentScore = 0;
     this.inSequence = false;
@@ -37,16 +37,16 @@ export class ObstacleManager {
   _getSpeedSettings() {
     if (this._isMobileLayout()) {
       return {
-        startSpeed: 3.6,
-        maxSpeed: 8.0,
-        acceleration: 0.0015
+        startSpeed: 2.7,
+        maxSpeed: 6.0,
+        acceleration: 0.0011
       };
     }
 
     return {
-      startSpeed: 4,
-      maxSpeed: 10,
-      acceleration: 0.0016
+      startSpeed: 3,
+      maxSpeed: 7.5,
+      acceleration: 0.0012
     };
   }
 
@@ -75,7 +75,7 @@ export class ObstacleManager {
   reset() {
     this.obstacles = [];
     this.spawnTimer = 0;
-    this.speed = 6;
+    this.speed = 4.5;
     this.spawnDistance = this._randomSpawnDistance();
     this.currentScore = 0;
     this.inSequence = false;
@@ -115,8 +115,8 @@ export class ObstacleManager {
     if (!prev) return { topH, gap };
 
     // Final Ease Tuning:
-    // Normal: 150, Stuck: 185 (creates a very generous common window)
-    const minOverlap = isStuck ? 185 : 150;
+    // Normal: 110, Stuck: 140 (creates a generous common window, scaled down for 600h)
+    const minOverlap = isStuck ? 140 : 110;
 
     const prevRange = this._openingRange(prev.type, prev.topH, prev.gap);
     const currRange = this._openingRange(type, topH, gap);
@@ -127,8 +127,8 @@ export class ObstacleManager {
     const currSpan = currRange.bottom - currRange.top;
 
     // 1. Cap the maximum vertical center shift to ensure the jump is physically possible.
-    // Final Ease Tuning: 20% limit for normal, 10% limit for stuck (nearly flat transitions)
-    const maxShift = isStuck ? this.canvas.height * 0.10 : this.canvas.height * 0.20;
+    // Final Ease Tuning: 20% limit for normal, 5% limit for stuck (nearly flat transitions)
+    const maxShift = isStuck ? this.canvas.height * 0.05 : this.canvas.height * 0.20;
     const rawShift = currCenter - prevCenter;
     if (Math.abs(rawShift) > maxShift) {
       currCenter = prevCenter + Math.sign(rawShift) * maxShift;
@@ -176,9 +176,9 @@ export class ObstacleManager {
       let gap = this._randomGap();
       const maxTopH = this.canvas.height - gap - this.minY;
       let rawTopH = Math.floor(Math.random() * (maxTopH - this.minY + 1) + this.minY);
-      
+
       const safe = this._applyTransitionSafety('full', rawTopH, gap, true);
-      
+
       this.obstacles.push({
         x: this.canvas.width,
         topH: safe.topH,
@@ -201,14 +201,14 @@ export class ObstacleManager {
       this.sequenceType = 'full';
       this.sequenceLength = Math.random() < 0.5 ? 6 : 8; // Slightly longer sequences
       this.sequencePendingSpawns = 0;
-      
+
       // Generate first pipe of the sequence
       let gap = this._randomGap();
       const maxTopH = this.canvas.height - gap - this.minY;
       let topH = Math.floor(Math.random() * (maxTopH - this.minY + 1) + this.minY);
 
       // (No safety needed for the first pipe in an isolated spawn)
-      
+
       this.obstacles.push({
         x: this.canvas.width,
         topH: topH,
@@ -273,13 +273,13 @@ export class ObstacleManager {
   update(onScore, score = 0) {
     this.currentScore = score;
     this.spawnTimer += this.speed;
-    
+
     // During sequence, use tight spacing (pipes completely touching - no gap)
     let effectiveSpawnDistance = this.spawnDistance;
     if (this.inSequence) {
       effectiveSpawnDistance = this.width;  // Pipes completely touching, no visual gap
     }
-    
+
     if (this.spawnTimer >= effectiveSpawnDistance) {
       this.spawn();
       this.spawnTimer = 0;
